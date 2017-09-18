@@ -120,4 +120,8 @@ class MetaVersionCollection extends AbstractFolder {
 	public function getName() {
 		return "v";
 	}
+
+	public function getPath() {
+		return "/meta/{$this->fileId}/v/{$this->getName()}";
+	}
 }
