@@ -30,6 +30,15 @@ namespace OCP;
  * @since 8.0.0
  */
 interface IGroup {
+
+	/**
+	 * get the groups's unique internal id
+	 *
+	 * @return int
+	 * @since 10.0.0
+	 */
+	public function getID();
+
 	/**
 	 * @return string
 	 * @since 8.0.0

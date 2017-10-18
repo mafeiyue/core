@@ -5,6 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
+ * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
  * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
@@ -48,9 +49,7 @@ class AppsTest extends TestCase {
 
 	protected function setUp() {
 		parent::setUp();
-
 		$this->appManager = \OC::$server->getAppManager();
-		$this->groupManager = \OC::$server->getGroupManager();
 		$this->userSession = \OC::$server->getUserSession();
 		$this->api = new Apps($this->appManager);
 	}
@@ -69,8 +68,8 @@ class AppsTest extends TestCase {
 	}
 
 	public function testGetApps() {
-		$user = $this->generateUsers();
-		$this->groupManager->get('admin')->addUser($user);
+		$user = $this->createUser($this->getUniqueID(), 'password');
+		$this->createGroup(self::TEST_PROVI_API_ADMIN_GROUP)->addUser($user);
 		$this->userSession->setUser($user);
 
 		$result = $this->api->getApps([]);

@@ -48,6 +48,13 @@ class RemoteUser implements IUser {
 	/**
 	 * @inheritdoc
 	 */
+	public function getID() {
+		return rand();
+	}
+
+	/**
+	 * @inheritdoc
+	 */
 	public function getUID() {
 		return $this->userId;
 	}

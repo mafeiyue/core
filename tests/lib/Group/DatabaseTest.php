@@ -5,8 +5,9 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,10 +21,11 @@
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
- *
  */
 
 namespace Test\Group;
+
+use OCP\IDBConnection;
 
 /**
  * Class Database
@@ -32,6 +34,9 @@ namespace Test\Group;
  */
 class DatabaseTest extends Backend {
 	private $groups = [];
+
+	/** @var IDBConnection */
+	protected $connection;
 
 	/**
 	 * get a new unique group name
@@ -47,7 +52,8 @@ class DatabaseTest extends Backend {
 
 	protected function setUp() {
 		parent::setUp();
-		$this->backend = new \OC\Group\Database();
+		$this->connection = \OC::$server->getDatabaseConnection();
+		$this->backend = new \OC\Group\Database($this->connection);
 	}
 
 	protected function tearDown() {
@@ -60,9 +66,13 @@ class DatabaseTest extends Backend {
 	public function testAddDoubleNoCache() {
 		$group = $this->getGroupName();
 
+		$exists = $this->backend->groupExists($group);
+		$this->assertFalse($exists);
 		$this->backend->createGroup($group);
+		$exists = $this->backend->groupExists($group);
+		$this->assertTrue($exists);
 
-		$backend = new \OC\Group\Database();
+		$backend = new \OC\Group\Database($this->connection);
 		$this->assertFalse($backend->createGroup($group));
 	}
 }

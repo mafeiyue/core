@@ -43,6 +43,7 @@ use OCP\IUserBackend;
 use OCP\User\IChangePasswordBackend;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use OC\MembershipManager;
 
 class User implements IUser {
 
@@ -73,11 +74,15 @@ class User implements IUser {
 	/** @var Session  */
 	private $userSession;
 
+	/** @var MembershipManager */
+	private $membershipManager;
+
 	/**
 	 * User constructor.
 	 *
 	 * @param Account $account
 	 * @param AccountMapper $mapper
+	 * @param MembershipManager $membershipManager
 	 * @param null $emitter
 	 * @param IConfig|null $config
 	 * @param null $urlGenerator
@@ -85,12 +90,14 @@ class User implements IUser {
 	 * @param \OC\Group\Manager|null $groupManager
 	 * @param Session|null $userSession
 	 */
-	public function __construct(Account $account, AccountMapper $mapper, $emitter = null, IConfig $config = null,
+	public function __construct(Account $account, AccountMapper $mapper, MembershipManager $membershipManager,
+								$emitter = null, IConfig $config = null,
 								$urlGenerator = null, EventDispatcher $eventDispatcher = null,
 								\OC\Group\Manager $groupManager = null, Session $userSession = null
 	) {
 		$this->account = $account;
 		$this->mapper = $mapper;
+		$this->membershipManager = $membershipManager;
 		$this->emitter = $emitter;
 		$this->eventDispatcher = $eventDispatcher;
 		if(is_null($config)) {
@@ -109,6 +116,15 @@ class User implements IUser {
 		if (is_null($this->userSession)) {
 			$this->userSession = \OC::$server->getUserSession();
 		}
+	}
+
+	/**
+	 * get the user id
+	 *
+	 * @return string
+	 */
+	public function getID() {
+		return $this->account->getId();
 	}
 
 	/**
@@ -200,24 +216,12 @@ class User implements IUser {
 		if ($this->emitter) {
 			$this->emitter->emit('\OC\User', 'preDelete', [$this]);
 		}
-		// get the home now because it won't return it after user deletion
-		$homePath = $this->getHome();
-		$this->mapper->delete($this->account);
-		$bi = $this->account->getBackendInstance();
-		if (!is_null($bi)) {
-			$bi->deleteUser($this->account->getUserId());
-		}
 
-		// FIXME: Feels like an hack - suggestions?
-
-		// We have to delete the user from all groups
-		foreach (\OC::$server->getGroupManager()->getUserGroups($this) as $group) {
-			$group->removeUser($this);
-		}
 		// Delete the user's keys in preferences
 		\OC::$server->getConfig()->deleteAllUserValues($this->getUID());
 
 		// Delete user files in /data/
+		$homePath = $this->getHome();
 		if ($homePath !== false) {
 			// FIXME: this operates directly on FS, should use View instead...
 			// also this is not testable/mockable...
@@ -229,6 +233,18 @@ class User implements IUser {
 
 		\OC::$server->getCommentsManager()->deleteReferencesOfActor('users', $this->getUID());
 		\OC::$server->getCommentsManager()->deleteReadMarksFromUser($this);
+
+		// Remove the user from all groups
+		$this->membershipManager->removeMemberships($this->getID());
+
+		// Delete user in external backend
+		$bi = $this->account->getBackendInstance();
+		if (!is_null($bi)) {
+			$bi->deleteUser($this->account->getUserId());
+		}
+
+		// Delete user internally
+		$this->mapper->delete($this->account);
 
 		if ($this->emitter) {
 			$this->emitter->emit('\OC\User', 'postDelete', [$this]);
@@ -300,9 +316,9 @@ class User implements IUser {
 			return false;
 		}
 		if ($backend->implementsActions(Backend::PROVIDE_AVATAR)) {
-				return $backend->canChangeAvatar($this->getUID());
+			return $backend->canChangeAvatar($this->getUID());
 		}
- 		return true;
+		return true;
 	}
 
 	/**

@@ -22,6 +22,7 @@
 namespace Test\User;
 
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use OC\User\Account;
 use OC\User\AccountMapper;
 use OC\User\AccountTermMapper;
@@ -95,10 +96,54 @@ class AccountMapperTest extends TestCase {
 	}
 
 	/**
+	 * Insert twice the same element should cause exception
+	 */
+	public function testDoubleInsertInValid() {
+		$account = new Account();
+		$account->setUserId("TestFind5");
+		$account->setDisplayName("Test Find 5");
+		$account->setEmail("test5@find.tld");
+		$account->setBackend(self::class);
+		$account->setHome("/foo/TestFind5");
+
+		$this->mapper->insert($account);
+		$result = $this->mapper->getByUid("TestFind5");
+		$this->assertInstanceOf(Account::class, $result);
+
+		$exceptionRaised = false;
+		try {
+			$this->mapper->insert($account);
+		} catch (UniqueConstraintViolationException $exception) {
+			$exceptionRaised = true;
+		}
+
+		$this->assertTrue($exceptionRaised);
+
+		// Cleanup
+		$this->mapper->delete($account);
+	}
+
+	/**
 	 * find all, use lower case
 	 */
 	public function testFindAll() {
 		$result = $this->mapper->find("testfind");
+		$this->assertEquals(4, count($result));
+	}
+
+	/**
+	 * find all, use lower case
+	 */
+	public function testFindAllWithEmpty() {
+		$result = $this->mapper->find('');
+		$this->assertEquals(4, count($result));
+	}
+
+	/**
+	 * find all, use lower case
+	 */
+	public function testSearchAllWithEmpty() {
+		$result = $this->mapper->search('user_id', '', null, null);
 		$this->assertEquals(4, count($result));
 	}
 

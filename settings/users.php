@@ -41,18 +41,8 @@ OC_Util::checkSubAdminUser();
 $userManager = \OC::$server->getUserManager();
 $groupManager = \OC::$server->getGroupManager();
 
-// Set the sort option: SORT_USERCOUNT or SORT_GROUPNAME
+// Set the default sort option: SORT_USERCOUNT
 $sortGroupsBy = \OC\Group\MetaData::SORT_USERCOUNT;
-
-if (\OC_App::isEnabled('user_ldap')) {
-	$isLDAPUsed =
-		   $groupManager->isBackendUsed('\OCA\User_LDAP\Group_LDAP')
-		|| $groupManager->isBackendUsed('\OCA\User_LDAP\Group_Proxy');
-	if ($isLDAPUsed) {
-		// LDAP user count can be slow, so we sort by group name here
-		$sortGroupsBy = \OC\Group\MetaData::SORT_GROUPNAME;
-	}
-}
 
 $config = \OC::$server->getConfig();
 

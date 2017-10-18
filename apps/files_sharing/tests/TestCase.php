@@ -36,6 +36,8 @@ use OC\Files\Filesystem;
 use OCA\Files_Sharing\AppInfo\Application;
 use OCA\Files_Sharing\SharedStorage;
 use OCP\ICache;
+use Test\Traits\GroupTrait;
+use Test\Traits\MembershipTrait;
 use Test\Traits\UserTrait;
 
 /**
@@ -48,6 +50,8 @@ use Test\Traits\UserTrait;
 abstract class TestCase extends \Test\TestCase {
 
 	use UserTrait;
+	use GroupTrait;
+	use MembershipTrait;
 
 	const TEST_FILES_SHARING_API_USER1 = "test-share-user1";
 	const TEST_FILES_SHARING_API_USER2 = "test-share-user2";
@@ -88,26 +92,37 @@ abstract class TestCase extends \Test\TestCase {
 		parent::setUp();
 
 		// create users
-		$this->createUser(self::TEST_FILES_SHARING_API_USER1, self::TEST_FILES_SHARING_API_USER1);
-		$this->createUser(self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_USER2);
-		$this->createUser(self::TEST_FILES_SHARING_API_USER3, self::TEST_FILES_SHARING_API_USER3);
-		$this->createUser(self::TEST_FILES_SHARING_API_USER4, self::TEST_FILES_SHARING_API_USER4);
+		$user1 = $this->createUser(self::TEST_FILES_SHARING_API_USER1, self::TEST_FILES_SHARING_API_USER1);
+		$user2 = $this->createUser(self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_USER2);
+		$user3 = $this->createUser(self::TEST_FILES_SHARING_API_USER3, self::TEST_FILES_SHARING_API_USER3);
+		$user4 = $this->createUser(self::TEST_FILES_SHARING_API_USER4, self::TEST_FILES_SHARING_API_USER4);
 
 		// create group
 		$groupBackend = new \Test\Util\Group\Dummy();
-		$groupBackend->createGroup(self::TEST_FILES_SHARING_API_GROUP1);
-		$groupBackend->createGroup('group');
-		$groupBackend->createGroup('group1');
-		$groupBackend->createGroup('group2');
-		$groupBackend->createGroup('group3');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER1, 'group');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER2, 'group');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER3, 'group');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER2, 'group1');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER3, 'group2');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER4, 'group3');
-		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_GROUP1);
 		\OC::$server->getGroupManager()->addBackend($groupBackend);
+
+		$groupBackend->createGroup(self::TEST_FILES_SHARING_API_GROUP1);
+		$apiGroup1 = \OC::$server->getGroupManager()->createGroupFromBackend(self::TEST_FILES_SHARING_API_GROUP1, $groupBackend);
+
+		$groupBackend->createGroup('group');
+		$group = \OC::$server->getGroupManager()->createGroupFromBackend('group', $groupBackend);
+
+		$groupBackend->createGroup('group1');
+		$group1 = \OC::$server->getGroupManager()->createGroupFromBackend('group1', $groupBackend);
+
+		$groupBackend->createGroup('group2');
+		$group2 = \OC::$server->getGroupManager()->createGroupFromBackend('group2', $groupBackend);
+
+		$groupBackend->createGroup('group3');
+		$group3 = \OC::$server->getGroupManager()->createGroupFromBackend('group3', $groupBackend);
+
+		$group->addUser($user1);
+		$group->addUser($user2);
+		$group->addUser($user3);
+		$group1->addUser($user2);
+		$group2->addUser($user3);
+		$group3->addUser($user4);
+		$apiGroup1->addUser($user2);
 
 		//login as user1
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
@@ -137,7 +152,6 @@ abstract class TestCase extends \Test\TestCase {
 
 		// reset backend
 		\OC::$server->getGroupManager()->clearBackends();
-		\OC::$server->getGroupManager()->addBackend(new \OC\Group\Database());
 
 		parent::tearDownAfterClass();
 	}

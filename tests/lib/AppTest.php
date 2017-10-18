@@ -9,6 +9,8 @@
 
 namespace Test;
 use OCP\IAppConfig;
+use Test\Traits\GroupTrait;
+use Test\Traits\MembershipTrait;
 use Test\Traits\UserTrait;
 
 /**
@@ -18,6 +20,8 @@ use Test\Traits\UserTrait;
  */
 class AppTest extends \Test\TestCase {
 	use UserTrait;
+	use GroupTrait;
+	use MembershipTrait;
 
 	const TEST_USER1 = 'user1';
 	const TEST_USER2 = 'user2';
@@ -394,15 +398,14 @@ class AppTest extends \Test\TestCase {
 	 * @dataProvider appConfigValuesProvider
 	 */
 	public function testEnabledApps($user, $expectedApps, $forceAll) {
-		$groupManager = \OC::$server->getGroupManager();
 		$user1 = $this->createUser(self::TEST_USER1, self::TEST_USER1);
 		$user2 = $this->createUser(self::TEST_USER2, self::TEST_USER2);
 		$user3 = $this->createUser(self::TEST_USER3, self::TEST_USER3);
 
-		$group1 = $groupManager->createGroup(self::TEST_GROUP1);
+		$group1 = $this->createGroup(self::TEST_GROUP1);
 		$group1->addUser($user1);
 		$group1->addUser($user3);
-		$group2 = $groupManager->createGroup(self::TEST_GROUP2);
+		$group2 = $this->createGroup(self::TEST_GROUP2);
 		$group2->addUser($user2);
 		$group2->addUser($user3);
 
@@ -425,7 +428,7 @@ class AppTest extends \Test\TestCase {
 		$apps = \OC_App::getEnabledApps(false, $forceAll);
 
 		$this->restoreAppConfig();
-		\OC_User::setUserId(null);
+		\OC::$server->getUserSession()->setUser(null);
 
 		$user1->delete();
 		$user2->delete();

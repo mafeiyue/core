@@ -1,16 +1,33 @@
 <?php
 
+
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Piotr Mrowczynski <piotr@owncloud.com>
+ *
+ * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace Test\User;
 
 use OC\Group\Manager;
 use OC\Hooks\PublicEmitter;
+use OC\MembershipManager;
 use OC\SubAdmin;
 use OC\User\Account;
 use OC\User\AccountMapper;
@@ -36,6 +53,8 @@ class UserTest extends TestCase {
 
 	/** @var AccountMapper | \PHPUnit_Framework_MockObject_MockObject */
 	private $accountMapper;
+	/** @var MembershipManager | \PHPUnit_Framework_MockObject_MockObject */
+	private $membershipManager;
 	/** @var Account */
 	private $account;
 	/** @var User */
@@ -58,6 +77,7 @@ class UserTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 		$this->accountMapper = $this->createMock(AccountMapper::class);
+		$this->membershipManager = $this->createMock(MembershipManager::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->account = new Account();
 		$this->account->setUserId('foo');
@@ -71,7 +91,7 @@ class UserTest extends TestCase {
 		$this->subAdmin = $this->createMock('\OC\SubAdmin');
 		$this->sessionUser = $this->createMock(Session::class);
 
-		$this->user = new User($this->account, $this->accountMapper, $this->emitter, $this->config, $this->urlGenerator, $this->eventDispatcher);
+		$this->user = new User($this->account, $this->accountMapper, $this->membershipManager, $this->emitter, $this->config, $this->urlGenerator, $this->eventDispatcher);
 	}
 
 	public function testDisplayName() {
@@ -98,7 +118,7 @@ class UserTest extends TestCase {
 		$account->expects($this->any())->method('__call')->with('getUserId')->willReturn('foo');
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(true);
 
-		$this->user = new User($account, $this->accountMapper, null, $this->config);
+		$this->user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$this->assertTrue($this->user->setPassword('bar',''));
 		$this->assertTrue($this->user->canChangePassword());
 
@@ -115,7 +135,7 @@ class UserTest extends TestCase {
 		$account->expects($this->any())->method('__call')->with('getUserId')->willReturn('foo');
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(false);
 
-		$this->user = new User($account, $this->accountMapper, null, $this->config);
+		$this->user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$this->assertFalse($this->user->setPassword('bar',''));
 		$this->assertTrue($this->user->canChangePassword());
 	}
@@ -157,13 +177,22 @@ class UserTest extends TestCase {
 				}
 			}));
 
-		$user = new User($account, $this->accountMapper, null, $this->config);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$this->assertEquals($expected, $user->canChangeAvatar());
 	}
 
 	public function testDelete() {
-		$this->accountMapper->expects($this->once())->method('delete')->willReturn($this->account);
-		$this->assertTrue($this->user->delete());
+		$backend = $this->createMock(Database::class);
+		$backend->expects($this->once())->method('deleteUser')->willReturn(true);
+		$account = $this->createMock(Account::class);
+		$account->expects($this->any())->method('getBackendInstance')->willReturn($backend);
+		$account->expects($this->any())->method('__call')->willReturnOnConsecutiveCalls('foo', '/home/foo', 'foo', 'foo');
+		$this->accountMapper->expects($this->once())->method('delete')->willReturn($account);
+		$this->membershipManager->expects($this->once())->method('removeMemberships')->willReturn(true);
+
+		$account->expects($this->once())->method('getBackendInstance')->willReturn($backend);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
+		$this->assertTrue($user->delete());
 	}
 
 	public function testGetHome() {
@@ -240,7 +269,7 @@ class UserTest extends TestCase {
 				}
 			}));
 
-		$user = new User($account, $this->accountMapper, null, $this->config, null, null, $this->groupManager, $this->sessionUser);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config, null, null, $this->groupManager, $this->sessionUser);
 
 		$this->assertEquals($expected, $user->canChangeDisplayName());
 	}
@@ -270,7 +299,7 @@ class UserTest extends TestCase {
 				}
 			}));
 
-		$user = new User($account, $this->accountMapper, null, $this->config);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$this->assertEquals($expected, $user->canChangeDisplayName());
 
 		if ($expected) {
@@ -306,7 +335,7 @@ class UserTest extends TestCase {
 				return false;
 			}));
 
-		$user = new User($account, $this->accountMapper, null, $this->config);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$this->assertFalse($user->setDisplayName('Foo'));
 		$this->assertEquals('foo',$user->getDisplayName());
 	}
@@ -336,7 +365,7 @@ class UserTest extends TestCase {
 		$account->expects($this->any())->method('__call')->with('getUserId')->willReturn('foo');
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(true);
 
-		$this->user = new User($account, $this->accountMapper, $emitter, $this->config);
+		$this->user = new User($account, $this->accountMapper, $this->membershipManager, $emitter, $this->config);
 
 		$this->user->setPassword('bar','');
 		$this->assertEquals(2, $hooksCalled);
@@ -357,6 +386,7 @@ class UserTest extends TestCase {
 		$this->emitter->listen('\OC\User', 'preDelete', $hook);
 		$this->emitter->listen('\OC\User', 'postDelete', $hook);
 
+		$this->membershipManager->expects($this->once())->method('removeMemberships')->willReturn(true);
 		$this->assertTrue($this->user->delete());
 		$this->assertEquals(2, $hooksCalled);
 	}
@@ -404,7 +434,7 @@ class UserTest extends TestCase {
 			->with('foo', $expected);
 
 		// Call the method
-		$user = new User($account, $this->accountMapper, null, $this->config);
+		$user = new User($account, $this->accountMapper, $this->membershipManager, null, $this->config);
 		$user->setSearchTerms($terms);
 	}
 

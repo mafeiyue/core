@@ -22,6 +22,8 @@
 namespace Test\Share;
 
 use Test\Traits\UserTrait;
+use Test\Traits\GroupTrait;
+use Test\Traits\MembershipTrait;
 
 /**
  * Class Test_Share
@@ -31,6 +33,8 @@ use Test\Traits\UserTrait;
 class ShareTest extends \Test\TestCase {
 
 	use UserTrait;
+	use GroupTrait;
+	use MembershipTrait;
 
 	protected $itemType;
 	protected $userBackend;
@@ -66,13 +70,15 @@ class ShareTest extends \Test\TestCase {
 		$u6 = $this->createUser($this->user6, 'pass'); // no group
 		$uug = $this->createUser($this->groupAndUser, 'pass');
 		\OC_User::setUserId($this->user1);
+
 		\OC::$server->getGroupManager()->clearBackends();
-		\OC::$server->getGroupManager()->addBackend(new \Test\Util\Group\Dummy());
+		$backend = new \Test\Util\Group\Dummy();
+		\OC::$server->getGroupManager()->addBackend($backend);
 		$this->group1 = $this->getUniqueID('group1_');
 		$this->group2 = $this->getUniqueID('group2_');
-		$g1 = \OC::$server->getGroupManager()->createGroup($this->group1);
-		$g2 = \OC::$server->getGroupManager()->createGroup($this->group2);
-		$gAU = \OC::$server->getGroupManager()->createGroup($this->groupAndUser);
+		$g1 = $this->createGroup($this->group1, $backend);
+		$g2 = $this->createGroup($this->group2, $backend);
+		$gAU = $this->createGroup($this->groupAndUser, $backend);
 		$g1->addUser($u1);
 		$g1->addUser($u2);
 		$g1->addUser($u3);
