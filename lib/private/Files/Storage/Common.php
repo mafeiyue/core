@@ -738,4 +738,9 @@ abstract class Common implements Storage, ILockingStorage, IVersionedStorage {
 		$v = $this->getVersion($internalPath, $versionId);
 		return \OCA\Files_Versions\Storage::restoreVersion($v['owner'], $v['path'], $v['storage_location'], $versionId);
 	}
+
+	public function saveVersion() {
+		// returning false here will trigger the fallback implementation
+		return false;
+	}
 }

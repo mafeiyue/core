@@ -106,8 +106,7 @@ class MetaFileVersionNode extends AbstractFile implements IProvidesAdditionalHea
 			if (!$target->isUpdateable()) {
 				throw new ForbiddenException("Cannot write to $targetPath", false);
 			}
-			$this->storage->restoreVersion($this->internalPath, $this->versionId);
-			return true;
+			return $this->storage->restoreVersion($this->internalPath, $this->versionId);
 		}
 
 		// for now we only allow restoring of a version
