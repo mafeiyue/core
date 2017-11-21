@@ -27,6 +27,7 @@ namespace OC\Files\ObjectStore;
 
 use Icewind\Streams\IteratorDirectory;
 use OC\Files\Cache\CacheEntry;
+use OCP\Files\NotFoundException;
 use OCP\Files\ObjectStore\IObjectStore;
 use OCP\Files\ObjectStore\IVersionedObjectStorage;
 
@@ -422,6 +423,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function getVersions($internalPath) {
 		if ($this->objectStore instanceof IVersionedObjectStorage) {
 			$stat = $this->stat($internalPath);
+			if ($stat === false) {
+				throw new NotFoundException();
+			}
 			return $this->objectStore->getVersions($this->getURN($stat['fileid']));
 		}
 		return parent::getVersions($internalPath);
@@ -430,6 +434,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function getVersion($internalPath, $versionId) {
 		if ($this->objectStore instanceof IVersionedObjectStorage) {
 			$stat = $this->stat($internalPath);
+			if ($stat === false) {
+				throw new NotFoundException();
+			}
 			return $this->objectStore->getVersion($this->getURN($stat['fileid']), $versionId);
 		}
 		return parent::getVersion($internalPath, $versionId);
@@ -438,6 +445,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function getContentOfVersion($internalPath, $versionId) {
 		if ($this->objectStore instanceof IVersionedObjectStorage) {
 			$stat = $this->stat($internalPath);
+			if ($stat === false) {
+				throw new NotFoundException();
+			}
 			return $this->objectStore->getContentOfVersion($this->getURN($stat['fileid']), $versionId);
 		}
 		return parent::getContentOfVersion($internalPath, $versionId);
@@ -446,6 +456,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function restoreVersion($internalPath, $versionId) {
 		if ($this->objectStore instanceof IVersionedObjectStorage) {
 			$stat = $this->stat($internalPath);
+			if ($stat === false) {
+				throw new NotFoundException();
+			}
 			return $this->objectStore->restoreVersion($this->getURN($stat['fileid']), $versionId);
 		}
 		return parent::restoreVersion($internalPath, $versionId);
