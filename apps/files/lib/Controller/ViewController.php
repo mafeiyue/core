@@ -179,12 +179,14 @@ class ViewController extends Controller {
 		\OCP\Util::addStyle('files', 'detailsView');
 
 		\OC_Util::addVendorScript('core', 'handlebars/handlebars');
+		\OC_Util::addVendorScript('core', 'autobahn/autobahn');
 
 		\OCP\Util::addScript('files', 'fileactions');
 		\OCP\Util::addScript('files', 'fileactionsmenu');
 		\OCP\Util::addScript('files', 'files');
 		\OCP\Util::addScript('files', 'keyboardshortcuts');
 		\OCP\Util::addScript('files', 'navigation');
+		\OCP\Util::addScript('files', 'autobahn');
 
 		// if IE8 and "?dir=path&view=someview" was specified, reformat the URL to use a hash like "#?dir=path&view=someview"
 		$isIE8 = $this->request->isUserAgent([Request::USER_AGENT_IE_8]);
@@ -259,6 +261,7 @@ class ViewController extends Controller {
 		);
 		$policy = new ContentSecurityPolicy();
 		$policy->addAllowedFrameDomain('\'self\'');
+		$policy->addAllowedConnectDomain('ws://localhost:8080');
 		$response->setContentSecurityPolicy($policy);
 
 		return $response;
